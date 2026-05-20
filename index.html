@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle de Kits - Masseira</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="img/favicon.ico" type="image/ico">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="watermark-background"></div>
+
+  <div class="container">
+    <h1>Controle de Kits</h1>
+    <h2>Masseira & Programação</h2>
+
+    <!-- Bloco 1: Lançamento da Programação do Dia -->
+    <div id="blocoProgramacao">
+      <h3>Montar Programação do Dia</h3>
+      <div class="input-group">
+        <label for="produtoKits">Produto:</label>
+        <select id="produtoKits" style="grid-column: span 3; padding: 8px;">
+          <option value="PP">PP (Pão Tradicional)</option>
+          <option value="PI">PI (Pão Integral)</option>
+          <option value="Artesano Original">Artesano Original</option>
+          <option value="Artesano Chapa">Artesano Chapa</option>
+          <option value="Artesano Brioche">Artesano Brioche</option>
+          <option value="Artesano Integral">Artesano Integral</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="qtdTotalKits">Kits:</label>
+        <input type="number" id="qtdTotalKits" placeholder="Ex: 60" style="grid-column: span 3;" />
+      </div>
+      <button onclick="adicionarAProgramacao()" style="background-color: #0071BC; width: 95%;">➕ Adicionar à Lista</button>
+      
+      <!-- Lista Visual da Programação Solicitada -->
+      <div id="listaProgramacaoVisual" style="margin-top: 10px; text-align: left; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px; display: none; max-height: 120px; overflow-y: auto;">
+        <strong>Fila de Produção:</strong>
+        <ul id="itensFila" style="margin: 5px 0; padding-left: 20px;"></ul>
+      </div>
+    </div>
+
+    <!-- Botões de Controle Principal -->
+    <div style="margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
+      <button id="btnIniciar" onclick="iniciarProximoDaFila()" style="background-color: green;">🚀 Iniciar Próximo</button>
+      <button onclick="zerarTudoComHistorio()" style="background-color: #333;">Limpar Tudo</button>
+      <button onclick="abrirPainelTV()" style="background-color: #0071BC;">📺 Abrir TV</button>
+    </div>
+
+
+    <!-- Bloco 2: Contador Dinâmico (Produção Atual) -->
+    <div id="areaContador" class="resultados">
+      <h2 style="margin-bottom: 0;">Produção Atual: <span id="nomeProdutoAtual" style="color: #0071BC;">-</span></h2>
+      <p style="margin: 0; font-size: 13px; color: #555;">Início: <span id="horaInicioAtual">--:--</span></p>
+      
+      <!-- Campo Novo: Previsão de Término Calculada Manualmente -->
+      <p id="previsaoTermino" style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #2e7d32;"></p>
+      
+      <div class="contador-display" id="boxContador">
+        <span id="progressoAtual">0</span> / <span id="progressoTotal">0</span>
+      </div>
+      
+      <div style="display: flex; justify-content: center; gap: 10px; width: 90%; margin: 0 auto;">
+        <button id="btnAbaten" onclick="abaterKit()" style="background-color: #0071BC; font-size: 20px; padding: 12px; flex: 2;">
+          ➕ Abater 1 Kit
+        </button>
+        <!-- Novo Botão de Emergência/Corte -->
+        <button onclick="interromperEEncerrarManual()" style="background-color: #E31837; font-size: 14px; padding: 12px; flex: 1; white-space: nowrap;">
+          🛑 Encerrar Massa
+        </button>
+      </div>
+    </div>
+
+
+    <!-- Bloco 3: Histórico de Produção (Últimas 24h) -->
+    <div style="margin-top: 20px; text-align: left; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 8px;">
+      <h4 style="margin: 0 0 5px 0; display: flex; justify-content: space-between;">
+        <span>📜 Histórico Recente (24h):</span>
+        <a href="#" onclick="limparHistoricoManualmente()" style="color: red; font-size: 12px; text-decoration: none;">[Apagar]</a>
+      </h4>
+      <div id="listaHistorico" style="font-size: 13px; max-height: 100px; overflow-y: auto;">
+        <i>Nenhum produto finalizado ainda.</i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Relógios, Dark Mode e Rodapé permanecem os mesmos -->
+  <div class="logo-container"><div class="assinatura">Created by Ellie Rod <br> • ID 50000833</div></div>
+  <div class="relogio-digital" id="relogioEsquerda">🕒 <span id="horaEsquerda"></span></div>
+  <div class="aba-data" id="abaData">📅 <span id="dataHojeCompacta"></span>
+    <div class="painel-claves"><p><strong>Data Atual:</strong> <span id="dataAtual"></span></p></div>
+  </div>
+  <div class="relogio-digital invertido" id="relogioDireita">🕒 <span id="horaDireita"></span></div>
+  <button id="toggleDarkMode" class="dark-toggle">🌙</button>
+  <div id="darkOverlay"></div>
+
+
+<div class="shortcuts">
+  <h3>Atalhos e Transmissão</h3>
+  <p><strong>Espaço / Enter</strong> = Abater Kit</p>
+  <p><strong>Alt + F</strong> ➔ Transmitir = Jogar na TV</p>
+  <p><strong>Win + P</strong> ➔ Configurar 2ª Tela (Estender)</p>
+</div>
+
+  <script src="script.js"></script>
+</body>
+</html> 

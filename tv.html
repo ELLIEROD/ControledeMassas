@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel TV - Monitoramento Masseira</title>
+  <style>
+    /* Estrutura Global da TV */
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 100px 30px 30px 30px; /* Espaço no topo para os relógios não cobrirem o título */
+      position: relative;
+      box-sizing: border-box;
+      min-height: 100vh;
+    }
+
+    /* Estilo dos Relógios Gêmeos (Idênticos ao app original) */
+    .relogio-digital {
+      position: fixed;
+      top: 15px;
+      padding: 12px 18px;
+      font-size: 22px;
+      font-weight: bold;
+      border-radius: 10px;
+      background-color: #0071BC;
+      color: #FFF;
+      z-index: 1000;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      font-family: monospace;
+    }
+
+    #relogioEsquerda { left: 15px; }
+    #relogioDireita { right: 15px; }
+    .relogio-digital.invertido { background-color: #fff; color: #0071BC; }
+
+    /* Painel Principal da TV */
+    .painel-tv {
+      background-color: #222;
+      border: 4px solid #0071BC;
+      border-radius: 20px;
+      padding: 30px;
+      display: inline-block;
+      min-width: 750px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    h1 { color: #F0E68C; font-size: 45px; margin: 0 0 10px 0; }
+    h2 { font-size: 55px; color: #FFF; margin: 5px 0; text-transform: uppercase; }
+    .horario-inicio { font-size: 24px; color: #aaa; margin-bottom: 15px; }
+    
+    .contador {
+      font-size: 140px;
+      font-weight: bold;
+      color: #E31837;
+      margin: 10px 0;
+      font-family: monospace;
+      background: #000;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .falta { font-size: 40px; color: #ffcc00; font-weight: bold; margin-bottom: 10px; }
+    
+    /* NOVO: Estilo da caixa de previsão de término na TV */
+    .previsao-painel {
+      font-size: 32px;
+      color: #2ecc71;
+      font-weight: bold;
+      margin-top: 15px;
+      letter-spacing: 1px;
+    }
+
+    /* Seção inferior da TV para o Histórico */
+    .tv-historico {
+      margin-top: 30px;
+      border-top: 2px solid #333;
+      padding-top: 15px;
+      text-align: left;
+      max-width: 750px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .tv-historico h3 { color: #F0E68C; margin: 0 0 10px 0; font-size: 22px; }
+    .item-hist { font-size: 18px; color: #ccc; margin: 5px 0; padding-bottom: 3px; border-bottom: 1px dashed #444; }
+  </style>
+</head>
+<body>
+
+  <!-- Relógios no Topo da TV -->
+  <div class="relogio-digital" id="relogioEsquerda">🕒 <span id="horaEsquerda">--:--:--</span></div>
+  <div class="relogio-digital invertido" id="relogioDireita">🕒 <span id="horaDireita">--:--:--</span></div>
+
+  <!-- Bloco Central -->
+  <div class="painel-tv">
+    <h1>PRODUTO EM PRODUÇÃO</h1>
+    <h2 id="tvProduto">AGUARDANDO PRODUTO</h2>
+    <div class="horario-inicio" id="tvHoraInicio">Início: --:--</div>
+    
+    <div class="contador" id="tvProgresso">0 / 0</div>
+    
+    <div class="falta" id="tvFalta">Sem ordens ativas.</div>
+    
+    <!-- NOVO: Elemento visual da previsão na tela da TV -->
+    <div class="previsao-painel" id="tvPrevisaoTermino"></div>
+  </div>
+
+  <!-- Histórico das últimas 24h -->
+  <div class="tv-historico">
+    <h3>Últimos Produtos Concluídos:</h3>
+    <div id="tvListaHistorico"></div>
+  </div>
+
+  <script>
+    function atualizarPainelTV() {
+        // 1. Atualiza as informações de produção vindas do LocalStorage
+        const dados = JSON.parse(localStorage.getItem("dadosAtuais"));
+        const historico = JSON.parse(localStorage.getItem("historicoProducao")) || [];
+
+        if (dados) {
+            document.getElementById("tvProduto").innerText = dados.produto;
+            document.getElementById("tvHoraInicio").innerText = `Horário de Início: ${dados.horaInicio}`;
+            document.getElementById("tvProgresso").innerText = `${dados.produzidos} / ${dados.total}`;
+            
+            const restantes = dados.total - dados.produzidos;
+            if(restantes <= 0) {
+                document.getElementById("tvFalta").innerText = "CONCLUÍDO! LIBERANDO PRÓXIMO...";
+                document.getElementById("tvFalta").style.color = "lightgreen";
+                document.getElementById("tvPrevisaoTermino").innerText = "";
+            } else {
+                document.getElementById("tvFalta").innerText = `FALTAM: ${restantes} KITS`;
+                document.getElementById("tvFalta").style.color = "#ffcc00";
+
+                // --- NOVO: Cálculo Dinâmico do Tempo Restante para a TV ---
+                const temposPorProduto = {
+                    "PP": 10,
+                    "PI": 8,
+                    "Artesano Original": 6,
+                    "Artesano Chapa": 6,
+                    "Artesano Brioche": 6,
+                    "Artesano Integral": 6
+                };
+
+                const minutosPorMassa = temposPorProduto[dados.produto] || 6;
+                const tempoRestanteMs = restantes * minutosPorMassa * 60 * 1000;
+                
+                const dataEstimada = new Date(new Date().getTime() + tempoRestanteMs);
+                const horaEstimada = dataEstimada.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                document.getElementById("tvPrevisaoTermino").innerText = `🏁 PREVISÃO DE TÉRMINO: ${horaEstimada} (${restantes * minutosPorMassa} min)`;
+            }
+        } else {
+            document.getElementById("tvProduto").innerText = "NENHUM";
+            document.getElementById("tvHoraInicio").innerText = "Aguardando comando do painel";
+            document.getElementById("tvProgresso").innerText = "0 / 0";
+            document.getElementById("tvFalta").innerText = "Masseira Ociosa";
+            document.getElementById("tvFalta").style.color = "#aaa";
+            document.getElementById("tvPrevisaoTermino").innerText = "";
+        }
+
+        // 2. Atualiza os últimos 3 itens do histórico na TV (Adicionado suporte ao status de "Encerrado")
+        const divHist = document.getElementById("tvListaHistorico");
+        if(historico.length === 0) {
+            divHist.innerHTML = "<em style='color:#666;'>Nenhum dado registrado nas últimas 24h.</em>";
+        } else {
+            divHist.innerHTML = "";
+            historico.slice(0, 3).forEach(item => {
+                // Se contiver a palavra "Encerrado", muda o visual do item no histórico da TV
+                const eInterrompido = item.total.includes("Encerrado");
+                const estiloEstilizado = eInterrompido ? "color: #b37400; font-style: italic;" : "";
+                const sufixoKits = eInterrompido ? "" : " Kts"; 
+
+                divHist.innerHTML += `<div class="item-hist" style="${estiloEstilizado}">
+                    ✓ <b>${item.produto}</b> (${item.total}${sufixoKits}) — Processado de 🕒 ${item.horaInicio} às ${item.horaFim}
+                </div>`;
+            });
+        }
+
+        // 3. Relógio em tempo real na TV
+        const agora = new Date();
+        const horaFormatada = agora.toLocaleTimeString('pt-BR');
+        document.getElementById("horaEsquerda").innerText = horaFormatada;
+        document.getElementById("horaDireita").innerText = horaFormatada;
+    }
+
+    // Executa a cada 1 segundo para manter o relógio e os dados sincronizados em tempo real
+    setInterval(atualizarPainelTV, 1000);
+    window.onload = atualizarPainelTV;
+  </script>
+</body>
+</html>
